@@ -23,6 +23,7 @@ def try_one_example(jsonl_file, model="gpt-4o-mini"):
             print(completion.choices[0].message.content)
             break
 
+
 def prepare_batches(
     ds, 
     prompt_format=AUTHOR_COMMENT_NO_POST_PROMPT,
@@ -35,10 +36,10 @@ def prepare_batches(
     if not os.path.exists('data'):
         os.makedirs('data')
     for i, batch in enumerate(ds.batch(BATCH_SIZE)):
-        custom_id = f"request-{i}"
         with open(f'data/batch-{i}.jsonl', 'w') as f:
             messages = []
-            for comment in batch['content']:
+            for idx, comment in enumerate(batch['content']):
+                custom_id = f"request-{idx}"
                 messages = [
                     {
                         "role": "system",
@@ -60,6 +61,17 @@ def prepare_batches(
                     }
                 }
                 f.write(json.dumps(to_write) + '\n')
+
+
+def clear_all_batches():
+    """Clears all batches on openai based on batch_ids in subdirectory"""
+    client = OpenAI()
+    for file in os.listdir('batches'):
+        batch_id = file.split('.')[0]
+        try:
+            client.batches.cancel(batch_id)
+        except Exception as e:
+            continue
 
 
 def load_all_splits():
